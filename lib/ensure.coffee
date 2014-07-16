@@ -5,7 +5,9 @@ EnsureRequest = (options) ->
     withPermissions: options.withPermissions
     redirectTo: options.returnTo or "/login"
     onDenied: options.onDenied
+
 consider = require("./consider")
+
 EnsureRequest::withSubject = (getSubject) ->
   link = new EnsureRequest(@options)
   link.options.withSubject = getSubject
@@ -27,14 +29,14 @@ EnsureRequest::onDenied = (deny) ->
   link
 
 EnsureRequest::isPermitted = -> # permission ... or [permission, ...] or permission check function
-  
+
   # Determine the permission check.
   withPermissionsDefault = (req, res) ->
     return req.user.permissions  if req.user and req.user.permissions
     return req.session.user.permissions  if req.session and req.session.user and req.session.user.permissions
     return req.permissions  if req.permissions
     []
-  
+
   # Convert synchronous with function to asynchronous
   onDeniedDefault = (req, res, next) ->
     res.redirect redirectTo
