@@ -1,23 +1,27 @@
+
 considerSubject = (subject) ->
   permissions = []
   permissions = subject.permissions  if subject and subject.permissions
   considerPermissions permissions
+
 considerPermissions = -> # permission ... or [permission, ....]
-  claim = compileClaim.apply(null, arguments_)
+  claim = compileClaim.apply(null, arguments)
   Object.defineProperty claim, "isPermitted",
     value: isPermitted
 
   claim
+
 coalescePermissions = -> # permission ... or [permission, ...]
   permissions = []
   i = undefined
   i = 0
-  while i < arguments_.length
-    permissions = permissions.concat(arguments_[i])
+  while i < arguments.length
+    permissions = permissions.concat(arguments[i])
     i++
   permissions
+
 isPermitted = -> # permission ... or [permission, ...]
-  permissions = coalescePermissions.apply(null, arguments_)
+  permissions = coalescePermissions.apply(null, arguments)
   return false  if permissions.length is 0
   i = 0
 
@@ -25,6 +29,7 @@ isPermitted = -> # permission ... or [permission, ...]
     return false  unless @test(permissions[i])
     i++
   true
+
 compileClaim = -> # permission ... or [permission, ....]
   compilePermission = (permission) ->
     permission.split(":").map((part) ->
@@ -55,7 +60,8 @@ compileClaim = -> # permission ... or [permission, ....]
         exp.push c
       ++i
     exp.join ""
-  permissions = coalescePermissions.apply(null, arguments_)
+
+  permissions = coalescePermissions.apply(null, arguments)
   return new RegExp("$false^")  if permissions.length is 0
   statements = []
   i = 0
@@ -66,6 +72,7 @@ compileClaim = -> # permission ... or [permission, ....]
   result = statements.join("|")
   result = "(" + result + ")"  if statements.length > 1
   new RegExp("^" + result + "$")
+
 module.exports =
   considerSubject: considerSubject
   considerPermissions: considerPermissions

@@ -1,70 +1,87 @@
-EnsureRequest = (options) ->
-  options = options or {}
-  @options =
-    withSubject: options.withSubject
-    withPermissions: options.withPermissions
-    redirectTo: options.returnTo or "/login"
-    onDenied: options.onDenied
-
 consider = require("./consider")
+ACL = require("./acl")
+Permission = require("./permissions")
 
-EnsureRequest::withSubject = (getSubject) ->
-  link = new EnsureRequest(@options)
-  link.options.withSubject = getSubject
-  link
+class EnsureRequest
+  constructor: (options) ->
+    options = options or {}
+    @options =
+      withSubject: options.withSubject
+      withPermissions: options.withPermissions
+      redirectTo: options.returnTo or "/login"
+      onDenied: options.onDenied
 
-EnsureRequest::withPermissions = (getPermissions) ->
-  link = new EnsureRequest(@options)
-  link.options.withPermissions = getPermissions
-  link
+  withSubject: (getSubject) =>
+    @options.withSubject = getSubject
+    return @
 
-EnsureRequest::redirectTo = (url) ->
-  link = new EnsureRequest(@options)
-  link.options.redirectTo = url
-  link
+  withPermissions: (getPermissions) =>
+    @withPermissions = getPermissions
+    @
 
-EnsureRequest::onDenied = (deny) ->
-  link = new EnsureRequest(@options)
-  link.options.onDenied = deny
-  link
+  redirectTo: (url) =>
+    @options.redirectTo = url
+    @
 
-EnsureRequest::isPermitted = -> # permission ... or [permission, ...] or permission check function
+  onDenied: (deny) =>
+    @options.onDenied = deny
+    @
 
-  # Determine the permission check.
-  withPermissionsDefault = (req, res) ->
-    return req.user.permissions  if req.user and req.user.permissions
-    return req.session.user.permissions  if req.session and req.session.user and req.session.user.permissions
-    return req.permissions  if req.permissions
-    []
+  isPermitted: => # permission ... or [permission, ...] or permission check function
 
-  # Convert synchronous with function to asynchronous
-  onDeniedDefault = (req, res, next) ->
-    res.redirect redirectTo
-  withSubject = @options.withSubject
-  withPermissions = @options.withPermissions
-  redirectTo = @options.redirectTo
-  onDenied = @options.onDenied
-  isPermittedCheck = undefined
-  if arguments_.length is 1 and typeof (arguments_[0]) is "function"
-    isPermittedCheck = arguments_[0]
-  else
-    permissions = arguments_
-    isPermittedCheck = (claim) ->
-      claim.isPermitted.apply claim, permissions
-  considerFunction = (if withSubject then consider.considerSubject else consider.considerPermissions)
-  withFunctionCandidate = (if withSubject then withSubject else withPermissions or withPermissionsDefault)
-  withFunction = withFunctionCandidate
-  unless withFunction.length is 3
-    withFunction = (req, res, done) ->
-      done withFunctionCandidate(req, res)
-  onDeniedFunction = onDenied or onDeniedDefault
-  (req, res, next) ->
-    withFunction req, res, (permissionsOrSubject) ->
-      if isPermittedCheck(considerFunction(permissionsOrSubject))
-        next()
-      else
-        onDeniedFunction req, res, next
+    arguments_ = arguments
+    # Determine the permission check.
+    withPermissionsDefault = (req, res) ->
+      return req.user.permissions  if req.user and req.user.permissions
+      return req.session.user.permissions  if req.session and req.session.user and req.session.user.permissions
+      return req.permissions  if req.permissions
+      []
+
+    # Convert synchronous with function to asynchronous
+    onDeniedDefault = (req, res, next) ->
+      res.redirect redirectTo
+
+    withSubject = @options.withSubject
+    withPermissions = @options.withPermissions
+    redirectTo = @options.redirectTo
+    onDenied = @options.onDenied
+    isPermittedCheck = undefined
+
+    if arguments_.length is 1 and typeof (arguments_[0]) is "function"
+      isPermittedCheck = arguments_[0]
+    else
+      permissions = arguments_
+      isPermittedCheck = (claim) ->
+        claim.isPermitted.apply claim, permissions
+
+    considerFunction = (if withSubject then consider.considerSubject else consider.considerPermissions)
+
+    withFunctionCandidate = (if withSubject then withSubject else withPermissions or withPermissionsDefault)
+    withFunction = withFunctionCandidate
+
+    unless withFunction.length is 3
+      withFunction = (req, res, done) ->
+        done withFunctionCandidate(req, res)
+
+    onDeniedFunction = onDenied or onDeniedDefault
+
+    return (req, res, next) ->
+      withFunction req, res, (permissionsOrSubject) ->
+        if isPermittedCheck(considerFunction(permissionsOrSubject))
+          req.authorizer = @isAuthorized
+          next()
+        else
+          onDeniedFunction req, res, next
+
+  isAuthorized: (permission, subject, resource, options, callback) =>
+    Permission.find permission, (err, res) =>
+      acl = new ACL({subject: subject, resource: resource, options: options})
+      console.log "PERM: ", res
+      acl.validate(res, (result) =>
+        callback(result)
+      )
 
 
-exports = module.exports = new EnsureRequest()
-exports.EnsureRequest = EnsureRequest
+
+module.exports = module.exports = new EnsureRequest()
+module.exports.EnsureRequest = EnsureRequest

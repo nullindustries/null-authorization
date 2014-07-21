@@ -4,7 +4,7 @@ Module dependencies.
 express = require("express")
 http = require("http")
 path = require("path")
-authorization = require("../")
+authorization = require("../lib/")
 app = express()
 
 # all environments
@@ -25,7 +25,9 @@ app.use express.static(path.join(__dirname, "public"))
 app.use express.errorHandler()  if "development" is app.get("env")
 
 # setup permission middleware
+console.log authorization.ensureRequest
 ensureNounVerb = authorization.ensureRequest.isPermitted("noun:verb")
+
 
 # Define Routes
 app.get "/", (req, res) ->
