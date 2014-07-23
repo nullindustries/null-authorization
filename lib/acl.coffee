@@ -1,133 +1,145 @@
 _ = require "underscore"
 
 acls_obj =
-	"is_admin": "subject.is_admin == true"
-	"is_owner": "subject._id == resource._id"
-	"is_user": "subject._id != resource._id"
-	"user_denny": "subject._id != resource._id"
+  "is_admin": "subject.is_admin == false"
+  "is_owner": "subject._id != resource._id"
+  "is_user": "subject._id != resource._id"
+  "user_denny": "subject._id == resource._id"
+  "is_auth": "subject._id != resource._id"
 
 class ACL
-	constructor: (options) ->
-		@subject = options.subject
-		@resource = options.resource
-		@options =  options.options
+  constructor: (options) ->
+    @subject = options.subject
+    @resource = options.resource
+    @options =  options.options
 
-		@defaultPolicy = options.defaultPolicy | no
+    @defaultPolicy = options.defaultPolicy | no
 
-	operators:
-		"$and":
-		  startValue: yes
-		  operator: "and"
-		"$or":
-		  startValue: no
-		  operator: "or"
-		"$not":
-		  startValue: null
-		  operator: "not"
+  operators:
+    "$and":
+      startValue: yes
+      operator: "and"
+    "$or":
+      startValue: no
+      operator: "or"
+    "$not":
+      startValue: null
+      operator: "not"
 
-	validate: (acls, callback) =>
-		allow_acls = @_validate(acls.allow)  if acls.allow?
-		denny_acls = @_validate(acls.denny) if acls.denny?
+  validate: (acls, callback) =>
+    allow_acls = []
+    denny_acls = []
+    acl_validation = []
+    for acl in acls
+      allow_acl = @defaultPolicy unless acl.allow?
+      denny_acl = not @defaultPolicy unless acl.allow?
 
-		console.log "ACLS ALLOW: ", allow_acls
-		console.log "ACLS DENNY: ", denny_acls
+      allow_acl = @_validate(acl.allow) if acl.allow?
+      denny_acl = @_validate(acl.denny) if acl.denny?
 
-		if denny_acls? and allow_acls?
-			# operation
-	    # X ⊄ Y = Converse Nonimplication = !X AND Y, NOT(X OR !Y), (X XOR Y) AND Y, ???
-	    x = denny_acls
-	    y = allow_acls
-
-	    result = not x and y
-
-	  else if denny_acls?
-	  	result = denny_acls
-	  else if allow_acls?
-	  	result = allow_acls
-	  else
-	  	result = @defaultPolicy
-
-	  return callback(result)
+      # allow_acls.push allow_acl if allow_acl?
+      # denny_acls.push denny_acl if denny_acl?
 
 
-	_validate: (rules) =>
-	  match = []
-	  for rule in rules
-	  	validate = (if rule.rules instanceof Array then "_arrayValidate" else "_#{typeof rule.rules}Validate")
-	  	result = {
-	  		access: rule.access
-	  		result: @defaultPolicy
-	  	}
-	  	console.log "validation type: ", validate
-	  	if @[validate]?
-	  		result.result = @[validate](rule.rules)
-	  	else
-	  		result.result = @_defaultValidate(rule.rules)
+      if denny_acl? and allow_acl?
+        # operation
+        # X ⊄ Y = Converse Nonimplication = !X AND Y, NOT(X OR !Y), (X XOR Y) AND Y, ???
+        x = denny_acl
+        y = allow_acl
 
-	  	match.push result
+        policy = not x and y
 
-	  return match
+      else if denny_acl?
+        policy = denny_acl
+      else if allow_acl?
+        policy = allow_acl
+      else
+        policy = @defaultPolicy
+
+      res = {
+        access: acl.access
+        result: policy
+      }
+      acl_validation.push res
+
+      if policy
+        result = res
+        break
+
+    unless result
+      result =
+        access: null
+        result: false
+
+    console.log "RESULT: ", result
+    return callback(result)
 
 
-	_defaultValidate: (acls) =>
-		# default validator
-		return @defaultPolicy
+  _validate: (rules) =>
+    validate = (if rules instanceof Array then "_arrayValidate" else "_#{typeof rules}Validate")
 
-	_stringValidate: (acl) =>
-		# validator when acls statement is just string.
-		# ex: allow: "is_admin"
-		current_acl = acls_obj[acl]
+    if @[validate]?
+      result = @[validate](rules)
+    else
+      result = @_defaultValidate(rules)
 
-		return @defaultPolicy unless current_acl
+    return result
 
-		subject = @subject
-		resource = @resource
-		options = @options
-		return eval(current_acl)
 
-	_arrayValidate: (acls, operator = "$and") =>
-		# validator when acls statement is an array.
-		# ex: allow: ["is_admin", "is_owner"]
-		result = _.reduce acls, (start, acl) =>
-			acl_result = @_stringValidate(acl)
-			console.log "ACL value: ", acl_result
-			switch @operators[operator].operation
-				when "and"
-					return start and acl_result
-				when "or"
-					return start or acl_result
-				else
-					return acl_result
+  _defaultValidate: (acls) =>
+    # default validator
+    return @defaultPolicy
 
-		, @operators[operator].startValue
+  _stringValidate: (acl) =>
+    # validator when acls statement is just string.
+    # ex: allow: "is_admin"
 
-		console.log "ARRAY ACl valuetion: ", operator, acls, result
-		return result
+    current_acl = acls_obj[acl]
 
-	_objectValidate: (acls) =>
-		# validator when acls statement is an object.
-		# ex: allow: { $and: ["is_admin", "is_owner"] }
-		results = []
-		for key, value of acls
-			operator = key
-			rules = value
-			validate = (if rules instanceof Array then "_arrayValidate" else "_#{typeof rules}Validate")
+    return @defaultPolicy unless current_acl?
 
-			console.log "object validation type: ", validate, rules
-			if @[validate]? and operator in Object.keys(@operators)
-				results.push @[validate](rules, operator)
-			else
-				results.push @_defaultValidate(rules)
+    subject = @subject
+    resource = @resource
+    options = @options
+    result = eval(current_acl)
+    console.log "ACL policy: ", acl, result
+    return  result
 
-		return _.reduce results, (start, result) =>
-			return result and start
-		, yes
+  _arrayValidate: (acls, operator = "$and") =>
+    # validator when acls statement is an array.
+    # ex: allow: ["is_admin", "is_owner"]
+    result = _.reduce acls, (start, acl) =>
+      acl_result = @_stringValidate(acl)
+
+      switch @operators[operator].operation
+        when "and"
+          return start and acl_result
+        when "or"
+          return start or acl_result
+        else
+          return acl_result
+
+    , @operators[operator].startValue
+
+    return result
+
+  _objectValidate: (acls) =>
+    # validator when acls statement is an object.
+    # ex: allow: { $and: ["is_admin", "is_owner"] }
+
+    results = []
+    for key, value of acls
+      operator = key
+      rules = value
+      validate = (if rules instanceof Array then "_arrayValidate" else "_#{typeof rules}Validate")
+
+      if @[validate]? and operator in Object.keys(@operators)
+        results.push @[validate](rules, operator)
+      else
+        results.push @_defaultValidate(rules)
+
+    return _.reduce results, (start, result) =>
+      return result and start
+    , yes
 
 module.exports = ACL
-
-
-
-
-
-
-

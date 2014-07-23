@@ -74,9 +74,20 @@ class EnsureRequest
           onDeniedFunction req, res, next
 
   isAuthorized: (permission, subject, resource, options, callback) =>
+    # 1. Default: Deny
+    # 2. Evaluate applicable policies
+    #      Match on: resource and action
+    # 3. Does policy exist for resource and action?
+    #      If no: Deny
+    # 4. Do any rules resolve to Deny?
+    #      If yes, Deny
+    #      If no, Do any rules resolve to Allow?
+    #      If yes, Allow
+    #      Else: Deny
     Permission.find permission, (err, res) =>
+      return callback(false) unless res
       acl = new ACL({subject: subject, resource: resource, options: options})
-      console.log "PERM: ", res
+
       acl.validate(res, (result) =>
         callback(result)
       )
