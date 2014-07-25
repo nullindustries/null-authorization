@@ -1,29 +1,48 @@
 {
-  "name": "express-authorization",
-  "version": "0.1.1",
-  "description": "An authorization system for connect and express applications inspired by Apache's Shiro project.",
-  "main": "lib",
+  "name": "null-authorization",
+  "version": "0.0.9",
+  "description": "An authorization system non-intrusive inspired by express-authorization, Apache's Shiro project and XACML acl rules.",
+  "main": "build/index.js",
   "scripts": {
-    "test": "mocha -R spec test",
-    "dist": "mkdir -p dist; browserify -s authorization lib/consider.js -o dist/authorization.js; uglifyjs dist/authorization.js -o dist/authorization.min.js"
+    "test": "grunt test"
   },
   "keywords": [
     "express",
     "connect",
     "authorization",
-    "shiro"
+    "shiro",
+    "xacml",
+    "acl"
   ],
   "repository": {
     "type": "git",
     "url": "https://github.com/support-dot-com/express-authorization.git"
   },
-  "author": "Support.com, Inc.",
+  "author": "Null industries",
   "contributors": [
-    "Charles Eads"
+    "Juan Pablo Gaviria"
   ],
   "license": "MIT",
   "dependencies": {
     "jison": "~0.4.13",
-    "underscore": "~1.6.0"
+    "underscore": "~1.6.0",
+    "null-authorization-adapter": "*"
+  },
+  "devDependencies": {
+    "coffee-coverage": "*",
+    "grunt": "~0.4.5",
+    "grunt-contrib-clean": "~0.5.0",
+    "grunt-contrib-coffee": "^0.10.1",
+    "grunt-contrib-watch": "^0.6.1",
+    "grunt-env": "~0.4.1",
+    "grunt-mkdir": "~0.1.1",
+    "grunt-mocha-test": "~0.11.0",
+    "grunt-shell": "^0.7.0",
+    "mocha": "*",
+    "precommit-hook": "juanpgaviria/precommit-hook",
+    "proxyquire": "^1.0.1",
+    "should": "*",
+    "sinon": "~1.7.3",
+    "supertest": "0.8.3"
   }
 }

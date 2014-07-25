@@ -2,9 +2,9 @@ _ = require "underscore"
 
 acls_obj =
   "is_admin": "subject.is_admin == false"
-  "is_owner": "subject._id != resource._id"
+  "is_owner": "subject._id == resource._id"
   "is_user": "subject._id != resource._id"
-  "user_denny": "subject._id == resource._id"
+  "user_deny": "subject._id != resource._id"
   "is_auth": "subject._id != resource._id"
 
 class ACL
@@ -26,35 +26,35 @@ class ACL
       startValue: null
       operator: "not"
 
-  validate: (acls, callback) =>
+  validate: (ensure, acls, callback) =>
+    @ensure = ensure
     allow_acls = []
-    denny_acls = []
+    deny_acls = []
     acl_validation = []
     for acl in acls
       allow_acl = @defaultPolicy unless acl.allow?
-      denny_acl = not @defaultPolicy unless acl.allow?
+      deny_acl = @defaultPolicy unless acl.deny?
 
       allow_acl = @_validate(acl.allow) if acl.allow?
-      denny_acl = @_validate(acl.denny) if acl.denny?
+      deny_acl = @_validate(acl.deny) if acl.deny?
 
       # allow_acls.push allow_acl if allow_acl?
-      # denny_acls.push denny_acl if denny_acl?
+      # deny_acls.push deny_acl if deny_acl?
 
 
-      if denny_acl? and allow_acl?
-        # operation
-        # X ⊄ Y = Converse Nonimplication = !X AND Y, NOT(X OR !Y), (X XOR Y) AND Y, ???
-        x = denny_acl
-        y = allow_acl
+      # if deny_acl? and allow_acl?
+      # operation
+      # X ⊄ Y = Converse Nonimplication = !X AND Y, NOT(X OR !Y), (X XOR Y) AND Y, ???
+      x = deny_acl
+      y = allow_acl
+      policy = not x and y
 
-        policy = not x and y
-
-      else if denny_acl?
-        policy = denny_acl
-      else if allow_acl?
-        policy = allow_acl
-      else
-        policy = @defaultPolicy
+      # else if deny_acl?
+      #   policy = deny_acl
+      # else if allow_acl?
+      #   policy = allow_acl
+      # else
+      #   policy = @defaultPolicy
 
       res = {
         access: acl.access
@@ -71,7 +71,7 @@ class ACL
         access: null
         result: false
 
-    console.log "RESULT: ", result
+    #console.log  "RESULT: ", result
     return callback(result)
 
 
@@ -94,7 +94,7 @@ class ACL
     # validator when acls statement is just string.
     # ex: allow: "is_admin"
 
-    current_acl = acls_obj[acl]
+    current_acl = @_getFromAdapter(acl)
 
     return @defaultPolicy unless current_acl?
 
@@ -102,7 +102,7 @@ class ACL
     resource = @resource
     options = @options
     result = eval(current_acl)
-    console.log "ACL policy: ", acl, result
+    #console.log  "ACL policy: ", acl, result
     return  result
 
   _arrayValidate: (acls, operator = "$and") =>
@@ -141,5 +141,11 @@ class ACL
     return _.reduce results, (start, result) =>
       return result and start
     , yes
+
+  _getFromAdapter: (acl) =>
+    for name, adapter of @ensure._adapters
+      acl = adapter.findACL(acl)
+      if acl?
+        return acl
 
 module.exports = ACL

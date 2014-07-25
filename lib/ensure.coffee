@@ -1,15 +1,36 @@
 consider = require("./consider")
 ACL = require("./acl")
 Permission = require("./permissions")
+JSONAdapter = require("./adapters/json")
 
 class EnsureRequest
   constructor: (options) ->
     options = options or {}
+    @_adapters = {}
+
     @options =
       withSubject: options.withSubject
       withPermissions: options.withPermissions
       redirectTo: options.returnTo or "/login"
       onDenied: options.onDenied
+
+
+  initialize: () =>
+    # express middleware
+    return (req, res, next) =>
+      req.authorization = @
+      next()
+
+  use: (name, adapter) =>
+    unless adapter?
+      adapter = name
+      name = adapter.name
+
+    throw new Error('Authorization adapter must have a name') unless name
+
+    @_adapters[name] = adapter
+    return @
+
 
   withSubject: (getSubject) =>
     @options.withSubject = getSubject
@@ -68,7 +89,8 @@ class EnsureRequest
     return (req, res, next) ->
       withFunction req, res, (permissionsOrSubject) ->
         if isPermittedCheck(considerFunction(permissionsOrSubject))
-          req.authorizer = @isAuthorized
+          req.authorization = @ unless req.authorization
+          req.permission = permissionsOrSubject
           next()
         else
           onDeniedFunction req, res, next
@@ -84,13 +106,15 @@ class EnsureRequest
     #      If no, Do any rules resolve to Allow?
     #      If yes, Allow
     #      Else: Deny
-    Permission.find permission, (err, res) =>
+    Permission.find @, permission, (err, res) =>
       return callback(false) unless res
       acl = new ACL({subject: subject, resource: resource, options: options})
 
-      acl.validate(res, (result) =>
+      acl.validate(@, res, (result) =>
         callback(result)
       )
+
+
 
 
 

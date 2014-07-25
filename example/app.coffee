@@ -4,7 +4,7 @@ Module dependencies.
 express = require("express")
 http = require("http")
 path = require("path")
-authorization = require("../lib/")
+authorization = require("./authorization")
 app = express()
 
 # all environments
@@ -18,15 +18,21 @@ app.use express.urlencoded()
 app.use express.methodOverride()
 app.use express.cookieParser("your secret here")
 app.use express.session()
+
+# authorization
+app.use authorization.initialize()
+
 app.use app.router
 app.use express.static(path.join(__dirname, "public"))
 
 # development only
 app.use express.errorHandler()  if "development" is app.get("env")
 
+
+
+
 # setup permission middleware
-console.log authorization.ensureRequest
-ensureNounVerb = authorization.ensureRequest.isPermitted("noun:verb")
+ensureNounVerb = authorization.isPermitted("noun:verb")
 
 
 # Define Routes
@@ -36,7 +42,18 @@ app.get "/", (req, res) ->
 
 
 app.get "/login", (req, res) ->
-  res.render "login", {}
+  subject = {
+    _id: 1
+    is_admin: true
+  }
+  resource = {
+    _id: 1
+  }
+  req.authorization.isAuthorized("User:read", subject, resource, {}, (result) ->
+    console.log result
+    res.render "login", {}
+  )
+
 
 app.post "/login", (req, res) ->
   req.session.user =
@@ -50,10 +67,19 @@ app.get "/logout", (req, res) ->
   res.redirect "/"
 
 app.get "/assert", ensureNounVerb, (req, res) ->
-  res.render "assert", {}
+  subject = {
+    _id: 1
+    is_admin: true
+  }
+  resource = {
+    _id: 1
+  }
+  req.authorization.isAuthorized("User:read", subject, resource, {}, (result) ->
+    console.log req.permission, result
+    res.render "assert", {}
+  )
 
 
 # Start Server
 http.createServer(app).listen app.get("port"), ->
   console.log "Express server listening on port " + app.get("port")
-

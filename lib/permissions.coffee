@@ -3,27 +3,34 @@ permissions = {
     access: "all"
     allow:
       "$or": ["is_admin", "is_owner"]
-    denny: "user_denny"
+    deny: "user_deny"
   },
   {
     access: "email username"
     allow:
       "$or": ["is_auth"]
-    denny: "is_anonimous"
+    deny: "is_anonimous"
   },
   {
     access: "-password"
     allow: ["is_user"]
-    denny: "is_anonimous"
+    deny: "is_anonimous"
   }]
 }
 
 class Permisssion
 
-  find: (perm, cb) =>
-    policy = permissions[perm]
+  find: (ensure, perm, cb) =>
+    @ensure = ensure
+    #policy = permissions[perm]
+    policy = @_getFromAdapters(perm)
     return cb( null, policy) if policy?
     return cb(null, false)
 
+  _getFromAdapters: (perm) =>
+    for name, adapter of @ensure._adapters
+      permission = adapter.findPermission(perm)
+      if permission?
+        return permission
 
 module.exports = new Permisssion()

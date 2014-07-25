@@ -5,7 +5,7 @@ describe "ensureRequest", ->
     self = this
     @done = done
     @result = result
-    result.redirectedTo = `undefined`
+    result.redirectedTo = undefined
     result.nextCalled = false
     @req = session:
       user:
@@ -18,6 +18,7 @@ describe "ensureRequest", ->
     @next = ->
       self.result.nextCalled = true
       self.done()  if self.done
+
   checkMiddleware = (middleware, result, done, check) ->
     httpContext = new httpContextMock(result, ->
       try
@@ -28,7 +29,7 @@ describe "ensureRequest", ->
     )
     middleware httpContext.req, httpContext.res, httpContext.next
   checkPermitted = (result) ->
-    assert.equal result.redirectedTo, `undefined`
+    assert.equal result.redirectedTo, undefined
     assert.equal result.nextCalled, true
   checkDenied = (result) ->
     assert.equal result.redirectedTo, "/login"
@@ -36,48 +37,49 @@ describe "ensureRequest", ->
   checkRedirectedElsewhere = (result) ->
     assert.equal result.redirectedTo, "/elsewhere"
     assert.equal result.nextCalled, false
+
   it "permitted", (done) ->
     result = {}
-    middleware = authorization.ensureRequest.isPermitted("identity:view")
+    middleware = authorization.isPermitted("identity:view")
     checkMiddleware middleware, result, done, checkPermitted
 
   it "permitted asserting multiple permissions", (done) ->
     result = {}
-    middleware = authorization.ensureRequest.isPermitted("identity:view", "system:list")
+    middleware = authorization.isPermitted("identity:view", "system:list")
     checkMiddleware middleware, result, done, checkPermitted
 
   it "denied", (done) ->
     result = {}
-    middleware = authorization.ensureRequest.isPermitted("identity:edit")
+    middleware = authorization.isPermitted("identity:edit")
     checkMiddleware middleware, result, done, checkDenied
 
   it "denied asserting multiple permissions", (done) ->
     result = {}
-    middleware = authorization.ensureRequest.isPermitted(["identity:view", "system:reboot"])
+    middleware = authorization.isPermitted(["identity:view", "system:reboot"])
     checkMiddleware middleware, result, done, checkDenied
 
   it "denied redirectTo", (done) ->
     result = {}
-    middleware = authorization.ensureRequest.redirectTo("/elsewhere").isPermitted("identity:edit")
+    middleware = authorization.redirectTo("/elsewhere").isPermitted("identity:edit")
     checkMiddleware middleware, result, done, checkRedirectedElsewhere
 
   it "or custom permission check - permitted", (done) ->
     result = {}
-    middleware = authorization.ensureRequest.isPermitted((claim) ->
+    middleware = authorization.isPermitted((claim) ->
       claim.isPermitted("identity:edit") or claim.isPermitted("identity:view")
     )
     checkMiddleware middleware, result, done, checkPermitted
 
   it "and custom permission check - denied", (done) ->
     result = {}
-    middleware = authorization.ensureRequest.isPermitted((claim) ->
+    middleware = authorization.isPermitted((claim) ->
       claim.isPermitted("identity:edit") and claim.isPermitted("identity:view")
     )
     checkMiddleware middleware, result, done, checkDenied
 
   it "denied handler", (done) ->
     result = {}
-    middleware = authorization.ensureRequest.onDenied((req, res, next) ->
+    middleware = authorization.onDenied((req, res, next) ->
       result.onDeniedCalled = true
       res.redirect "/elsewhere"
     ).isPermitted("identity:edit")
@@ -88,7 +90,7 @@ describe "ensureRequest", ->
 
   it "custom considerPermissions", (done) ->
     result = {}
-    middleware = authorization.ensureRequest.withPermissions((req, res) ->
+    middleware = authorization.withPermissions((req, res) ->
       result.withPermissionsCalled = true
       ["identity:*"]
     ).isPermitted("identity:edit")
@@ -99,7 +101,7 @@ describe "ensureRequest", ->
 
   it "custom asynchronous considerPermissions", (done) ->
     result = {}
-    middleware = authorization.ensureRequest.withPermissions((req, res, done) ->
+    middleware = authorization.withPermissions((req, res, done) ->
       result.withPermissionsCalled = true
       done ["identity:*"]
     ).isPermitted("identity:edit")
@@ -110,7 +112,7 @@ describe "ensureRequest", ->
 
   it "custom considerSubject", (done) ->
     result = {}
-    middleware = authorization.ensureRequest.withSubject((req, res) ->
+    middleware = authorization.withSubject((req, res) ->
       result.withPermissionsCalled = true
       user =
         username: "administrator"
@@ -125,7 +127,7 @@ describe "ensureRequest", ->
 
   it "custom asynchronous considerSubject", (done) ->
     result = {}
-    middleware = authorization.ensureRequest.withSubject((req, res, done) ->
+    middleware = authorization.withSubject((req, res, done) ->
       result.withPermissionsCalled = true
       user =
         username: "administrator"
@@ -140,17 +142,15 @@ describe "ensureRequest", ->
 
   it "permitted new EnsureRequest", (done) ->
     result = {}
-    ensureRequest = new authorization.EnsureRequest()
+    ensureRequest = new authorization()
     middleware = ensureRequest.isPermitted("identity:view")
     checkMiddleware middleware, result, done, checkPermitted
 
   it "custom options", (done) ->
     result = {}
-    
-    # Global default options can be set on authorization.ensureRequest.options
-    ensureRequest = new authorization.EnsureRequest()
+
+    # Global default options can be set on authorization.options
+    ensureRequest = new authorization()
     ensureRequest.options.redirectTo = "/elsewhere"
     middleware = ensureRequest.isPermitted("identity:edit")
     checkMiddleware middleware, result, done, checkRedirectedElsewhere
-
-
