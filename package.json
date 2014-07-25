@@ -1,6 +1,6 @@
 {
   "name": "null-authorization",
-  "version": "0.0.9",
+  "version": "0.0.10",
   "description": "An authorization system non-intrusive inspired by express-authorization, Apache's Shiro project and XACML acl rules.",
   "main": "build/index.js",
   "scripts": {
@@ -16,11 +16,12 @@
   ],
   "repository": {
     "type": "git",
-    "url": "https://github.com/support-dot-com/express-authorization.git"
+    "url": "https://github.com/nullindustries/null-authorization-adapter"
   },
   "author": "Null industries",
   "contributors": [
-    "Juan Pablo Gaviria"
+    "Juan Pablo Gaviria",
+    "Sebastian Castillo"
   ],
   "license": "MIT",
   "dependencies": {
