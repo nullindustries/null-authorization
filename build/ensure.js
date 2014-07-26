@@ -1,4 +1,4 @@
-var ACL, EnsureRequest, JSONAdapter, Permission, consider,
+var ACL, EnsureRequest, JSONAdapter, Permission, Subject, consider,
   __bind = function(fn, me){ return function(){ return fn.apply(me, arguments); }; };
 
 consider = require("./consider");
@@ -7,10 +7,13 @@ ACL = require("./acl");
 
 Permission = require("./permissions");
 
+Subject = require("./subject");
+
 JSONAdapter = require("./adapters/json");
 
 EnsureRequest = (function() {
   function EnsureRequest(options) {
+    this.loadSubjectPermissions = __bind(this.loadSubjectPermissions, this);
     this.isAuthorized = __bind(this.isAuthorized, this);
     this.isPermitted = __bind(this.isPermitted, this);
     this.onDenied = __bind(this.onDenied, this);
@@ -126,6 +129,10 @@ EnsureRequest = (function() {
   };
 
   EnsureRequest.prototype.isAuthorized = function(permission, subject, resource, options, callback) {
+    if (typeof options === "function" && callback === void 0) {
+      callback = options;
+      options = {};
+    }
     return Permission.find(this, permission, (function(_this) {
       return function(err, res) {
         var acl;
@@ -140,6 +147,24 @@ EnsureRequest = (function() {
         return acl.validate(_this, res, function(result) {
           return callback(result);
         });
+      };
+    })(this));
+  };
+
+  EnsureRequest.prototype.loadSubjectPermissions = function(subject, options, callback) {
+    if (typeof options === "function" && callback === void 0) {
+      callback = options;
+      options = {};
+    }
+    subject = new Subject({
+      subject: subject,
+      options: options
+    });
+    return subject.permissions(this, (function(_this) {
+      return function(result) {
+        if (typeof callback === "function") {
+          return callback(result);
+        }
       };
     })(this));
   };

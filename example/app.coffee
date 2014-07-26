@@ -56,11 +56,18 @@ app.get "/login", (req, res) ->
 
 
 app.post "/login", (req, res) ->
-  req.session.user =
+  user =
     username: "root"
-    permissions: ["noun:*"]
+    _id: 1
+    is_admin: true
 
-  res.redirect "/"
+  req.authorization.loadSubjectPermissions(user, (result) ->
+    req.session.user = user
+    req.session.user.permissions = result.permissions
+    console.log "MATCH: ", result
+    console.log "USER: ", req.session.user
+    res.redirect "/"
+  )
 
 app.get "/logout", (req, res) ->
   req.session.destroy()
@@ -75,7 +82,7 @@ app.get "/assert", ensureNounVerb, (req, res) ->
     _id: 1
   }
   req.authorization.isAuthorized("User:read", subject, resource, {}, (result) ->
-    console.log req.permission, result
+    console.log "USER: ", req.permission, result.permissions
     res.render "assert", {}
   )
 

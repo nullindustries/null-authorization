@@ -21,11 +21,16 @@ ACL = (function() {
     this._defaultValidate = __bind(this._defaultValidate, this);
     this._validate = __bind(this._validate, this);
     this.validate = __bind(this.validate, this);
+    this.initiliaze = __bind(this.initiliaze, this);
+    this.initiliaze(options);
+  }
+
+  ACL.prototype.initiliaze = function(options) {
     this.subject = options.subject;
     this.resource = options.resource;
     this.options = options.options;
-    this.defaultPolicy = options.defaultPolicy | false;
-  }
+    return this.defaultPolicy = options.defaultPolicy | false;
+  };
 
   ACL.prototype.operators = {
     "$and": {

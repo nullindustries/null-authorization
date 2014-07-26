@@ -12,9 +12,11 @@ JSONAdapter = (function(_super) {
     this.findACL = __bind(this.findACL, this);
     this.findPermission = __bind(this.findPermission, this);
     this.findResource = __bind(this.findResource, this);
+    this.findSubject = __bind(this.findSubject, this);
     this.loadACLs = __bind(this.loadACLs, this);
     this.loadPermissions = __bind(this.loadPermissions, this);
     this.loadResources = __bind(this.loadResources, this);
+    this.loadSubjects = __bind(this.loadSubjects, this);
     this.initialize = __bind(this.initialize, this);
     return JSONAdapter.__super__.constructor.apply(this, arguments);
   }
@@ -23,9 +25,15 @@ JSONAdapter = (function(_super) {
 
   JSONAdapter.prototype.initialize = function(options) {
     this.options = options;
+    this._subjects = options.subjects;
     this._resources = options.resources;
     this._permissions = options.permissions;
     return this._acls = options.acls;
+  };
+
+  JSONAdapter.prototype.loadSubjects = function(subjects) {
+    this._subjects = subjects;
+    return this;
   };
 
   JSONAdapter.prototype.loadResources = function(resources) {
@@ -41,6 +49,13 @@ JSONAdapter = (function(_super) {
   JSONAdapter.prototype.loadACLs = function(acls) {
     this._acls = acls;
     return this;
+  };
+
+  JSONAdapter.prototype.findSubject = function(name) {
+    if (name) {
+      return this._subjects[name];
+    }
+    return this._subjects;
   };
 
   JSONAdapter.prototype.findResource = function(name) {

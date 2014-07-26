@@ -9,6 +9,9 @@ acls_obj =
 
 class ACL
   constructor: (options) ->
+    @initiliaze(options)
+
+  initiliaze: (options) =>
     @subject = options.subject
     @resource = options.resource
     @options =  options.options

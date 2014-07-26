@@ -1,6 +1,8 @@
 consider = require("./consider")
 ACL = require("./acl")
 Permission = require("./permissions")
+Subject = require("./subject")
+
 JSONAdapter = require("./adapters/json")
 
 class EnsureRequest
@@ -106,6 +108,10 @@ class EnsureRequest
     #      If no, Do any rules resolve to Allow?
     #      If yes, Allow
     #      Else: Deny
+    if typeof options == "function" and callback == undefined
+      callback = options
+      options = {}
+
     Permission.find @, permission, (err, res) =>
       return callback(false) unless res
       acl = new ACL({subject: subject, resource: resource, options: options})
@@ -114,6 +120,14 @@ class EnsureRequest
         callback(result)
       )
 
+  loadSubjectPermissions: (subject, options, callback) =>
+    if typeof options == "function" and callback == undefined
+      callback = options
+      options = {}
+
+    subject = new Subject({subject: subject, options: options})
+    subject.permissions @, (result) =>
+      callback(result) if typeof callback == "function"
 
 
 
