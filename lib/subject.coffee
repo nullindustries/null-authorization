@@ -45,6 +45,7 @@ class Subject extends ACL
       match: _.pluck subject_match, 'subject'
       permissions: @_concatenatePermissions _.pluck(subject_match, 'permissions')
     }
+    result.compiled = new RegExp("(#{result.permissions.join('|')})")
     #console.log  "RESULT: ", result
     return callback(result)
 
